@@ -16,18 +16,32 @@
 
 static OLED1_CREATE_INSTANCE(oled1, OLED1_EXT_HEADER);
 
-song songs[5];
+song songs[2];
+unsigned int currentSongNum = 0;
+volatile note currentNote;
+volatile song currentSong;
+volatile int songPos;
+bool play;
 
 void onPrev()
 {
+	currentSongNum = (currentSongNum - 1)%2;
+	currentSong = songs[currentSong;]
+	songPos = 0;
+	gfx_mono_draw_string(currentSong.bane, 10, 10, &sysfont);	
 }
 
 void onPausePlay()
 {
+	play = !play;
 }
 
 void onNext()
 {
+	currentSongNum = (currentSongNum + 1)%2;
+	currentSong = songs[currentSong;]
+	songPos = 0;
+	gfx_mono_draw_string(currentSong.bane, 10, 10, &sysfont);		
 }
 
 static void StatusTask(void *params)
@@ -73,16 +87,13 @@ static void StatusTask(void *params)
     }
 }
 
-volatile note currentNote;
-volatile song currentSong;
-volatile int songPos;
-
 
 static void playNoteTask(void *params)
 {
 	while(true)
 	{
 		while(currentNote.freq == 0);
+		while(!play);
 
 		int delay = 10000/currentNote.freq;
 		port_pin_toggle_output_level(PIN_PB30);
@@ -94,6 +105,8 @@ static void playSongTask(void *params)
 {
 	while(true)
 	{
+		while(!play);
+
 		if(songPos++ >= currentSong.length)
 		{
 			onNext();
@@ -106,6 +119,8 @@ static void playSongTask(void *params)
 void musicPlayer_init()
 {
     oled1_init(&oled1);
+
+	play_mutex =  xSemaphoreCreateMutex();
 
     xTaskCreate(StatusTask, (const char *)"status", 150, NULL, 3, NULL);
     xTaskCreate(playNoteTask, (const char *)"note", 150, NULL, 3, NULL);
